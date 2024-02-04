@@ -6,9 +6,9 @@ namespace CSV2.Services
 {
     public interface ICSVService
     {
-        public IEnumerable<T> readCSV<T>(Stream file);
+        public IEnumerable<T> ReadCSV<T>(Stream file);
         void WriteCSV<T>(List<T> records);
-        public FileStreamResult? exportCSV(string filename);
+        public FileStreamResult? ExportCSV(string filename);
         public void EnhanceFile(CsvRecord enreachedFile);
     }
 }

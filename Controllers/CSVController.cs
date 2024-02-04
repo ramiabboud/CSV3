@@ -20,7 +20,7 @@ namespace CSV2.Controllers
         [HttpPost("import-csv-file")]
         public IActionResult ImportCSVFile([FromForm] IFormFileCollection file)
         {
-            List<CsvRecord> csvFile = _csvService.readCSV<CsvRecord>(file[0].OpenReadStream()).ToList();
+            List<CsvRecord> csvFile = _csvService.ReadCSV<CsvRecord>(file[0].OpenReadStream()).ToList();
 
             foreach (var csvFileRecord in csvFile)
             {
@@ -38,12 +38,12 @@ namespace CSV2.Controllers
         [HttpGet("export-csv-file/{filename}")]
         public IActionResult ExportCSVFile(string filename)
         {
-            if (_csvService.exportCSV(filename) == null)
+            if (_csvService.ExportCSV(filename) == null)
             {
                 return NotFound($"File {filename} not found.");
             }
 
-            return _csvService.exportCSV(filename);
+            return _csvService.ExportCSV(filename);
         }
     }
 }

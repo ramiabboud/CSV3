@@ -23,7 +23,7 @@ namespace CSV2.Services
             _httpClient = httpClient;
         }
 
-        public IEnumerable<T> readCSV<T>(Stream file)
+        public IEnumerable<T> ReadCSV<T>(Stream file)
         {
             var reader = new StreamReader(file);
             var csv = new CsvReader(reader, cfg);
@@ -42,7 +42,7 @@ namespace CSV2.Services
             }
         }
 
-        public FileStreamResult? exportCSV(string filename)
+        public FileStreamResult? ExportCSV(string filename)
         {
             var path = $"{Statics.filePath}\\{filename}";
 
@@ -59,29 +59,19 @@ namespace CSV2.Services
             };
         }
 
-        public void EnhanceFile(CsvRecord enreachedFile)
+        public void EnhanceFile(CsvRecord enrichedFile)
         {
             try
             {
-                HttpResponseMessage response = _httpClient.GetAsync($"https://api.gleif.org/api/v1/lei-records?filter[lei]={enreachedFile.lei}").Result;
+                var gleif = GetGleifRecord(enrichedFile.lei);
 
-                if (response.IsSuccessStatusCode)
+                enrichedFile.legalName = ExtractProperty(gleif, "legalName", "name");
+                enrichedFile.bic = ExtractArrayProperty(gleif, "bic");
+
+                var country = ExtractProperty(gleif, "legalAddress", "country");
+                if (!string.IsNullOrEmpty(country))
                 {
-                    var content = response.Content.ReadAsStringAsync().Result;
-                    var gleif = (JObject)JsonConvert.DeserializeObject(content);
-
-                    enreachedFile.legalName = ExtractProperty(gleif, "legalName", "name");
-                    enreachedFile.bic = ExtractArrayProperty(gleif, "bic");
-
-                    var country = ExtractProperty(gleif, "legalAddress", "country");
-                    if (!string.IsNullOrEmpty(country))
-                    {
-                        enreachedFile.transaction_costs = secondEnhancement(country, enreachedFile);
-                    }
-                }
-                else
-                {
-                    throw new HttpRequestException($"Failed to get LEI record: {response.StatusCode}");
+                    enrichedFile.transaction_costs = SecondEnhancement(country, enrichedFile);
                 }
             }
             catch (Exception ex)
@@ -89,6 +79,19 @@ namespace CSV2.Services
                 // Log the exception details here
                 throw ex;
             }
+        }
+
+        private JObject GetGleifRecord(string lei)
+        {
+            HttpResponseMessage response = _httpClient.GetAsync($"{Statics.gleifAPI}{lei}").Result;
+
+            if (response.IsSuccessStatusCode)
+            {
+                var content = response.Content.ReadAsStringAsync().Result;
+                return (JObject)JsonConvert.DeserializeObject(content);
+            }
+
+            throw new HttpRequestException($"Failed to get LEI record: {response.StatusCode}");
         }
 
         private string ExtractProperty(JObject gleif, string propertyName, string subPropertyName = null)
@@ -113,7 +116,7 @@ namespace CSV2.Services
             return null;
         }
 
-        private double secondEnhancement(string country, CsvRecord enreachedRecord)
+        private double SecondEnhancement(string country, CsvRecord enreachedRecord)
         {
             if (country.Equals("GB"))
             {
